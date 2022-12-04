@@ -1,7 +1,7 @@
 <?php
 namespace App\Controller;
 use App\Repository\NewsRepository;
-use App\Service\TagHelper;
+use App\Repository\TagNewsRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,12 +13,44 @@ class NewsController extends AbstractController
     const COUNT_NEWS_PER_PAGE = 5;
 
     private $newsRepository;
-    private $tagHelper;
+    private $tagNewsRepository;
 
-    public function __construct(NewsRepository $newsRepository, TagHelper $tagHelper)
+    public function __construct(NewsRepository $newsRepository, TagNewsRepository $tagNewsRepository)
     {
         $this->newsRepository = $newsRepository;
-        $this->tagHelper = $tagHelper;
+        $this->tagNewsRepository = $tagNewsRepository;
+    }
+
+    private function getTagIdsFromRequest(Request $request): array
+    {
+        $tag = $request->get('tag');
+        $tagIds = [];
+        if ($tag) {
+            $tag = is_array($tag) ? $tag : [$tag];
+            foreach ($tag as $item) {
+                if ($tagId = $this->tagNewsRepository->findByName($item)?->getId()) {
+                    $tagIds[] = $tagId;
+                }
+            }
+        }
+        return $tagIds;
+    }
+
+    private function getDateFromRequest(Request $request): ?\DateTimeImmutable
+    {
+        $year  = $request->get('year');
+        $month = $request->get('month');
+
+        $dateFrom = null;
+        if ($year && $month) {
+            try {
+                $dateFrom = new \DateTimeImmutable($year . '-' . $month . '-' . '01');
+            } catch (\Exception $e) {
+                return null;
+            }
+
+        }
+        return $dateFrom;
     }
 
     /**
@@ -26,26 +58,19 @@ class NewsController extends AbstractController
      */
     public function index(Request $request)
     {
-        //$news = $this->newsRepository->findAll();
-        /*$page = $request->get('page');
-        $tags = $request->get('tag');
-        $year = $request->get('year');
-        $month = $request->get('month');
+        $page  = (int)($request->get('page') ? $request->get('page') : 1);
+        $page  = $page > 0 ? $page : 1;
+        $tagIds = $this->getTagIdsFromRequest($request);
+        $dateFrom = $this->getDateFromRequest($request);
 
-        if ($year && $month) {
-            $data = $year . ' ' . $month;
-        }
+        $news = $this->newsRepository->findByParams(self::COUNT_NEWS_PER_PAGE, $page, $dateFrom, $tagIds);
 
-        $offset = ($page - 1) * self::COUNT_NEWS_PER_PAGE;
-
-        $tag_ids = [];
-        foreach($tags as $tag) {
-            if ($tag_id = $this->tagHelper->getTagIdByName($tag)) {
-                $tag_ids[] = $tag_id;
-            }
-        }*/
-
-        $data = [];
+        $data = [
+            'items' =>  [$news],
+            'page'  =>  $page,
+            'limit' =>  self::COUNT_NEWS_PER_PAGE,
+            'total' =>  count($news)
+        ];
 
         return new JsonResponse($data, Response::HTTP_OK);
     }

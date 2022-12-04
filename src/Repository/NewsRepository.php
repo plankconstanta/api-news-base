@@ -3,7 +3,9 @@
 namespace App\Repository;
 
 use App\Entity\News;
+use DateTimeImmutable;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -37,6 +39,45 @@ class NewsRepository extends ServiceEntityRepository
         if ($flush) {
             $this->getEntityManager()->flush();
         }
+    }
+
+    /**
+    * @return News[] Returns an array of News objects
+    */
+    public function findByParams(int $pageSize, int $page, DateTimeImmutable $dateFrom = null, array $tagIds = []): array
+    {
+        $dateNow = new DateTimeImmutable('now');
+
+        $queryBuilder = $this->createQueryBuilder('n')
+            ->andWhere('n.published_at < :val1')
+            ->setParameter('val1', $dateNow)
+            ->orderBy('n.published_at', 'DESC');
+
+        if ($dateFrom instanceof DateTimeImmutable) {
+            $queryBuilder->andWhere('n.published_at > :val2')
+                ->setParameter('val2', $dateFrom);
+        }
+
+        if (is_array($tagIds)) {
+            $queryBuilder->leftJoin('n.tags', 't')
+            ->andWhere($queryBuilder->expr()->in('t.id', $tagIds));
+        }
+
+        $paginator = new Paginator($queryBuilder->getQuery());
+        //$total = count($paginator);
+
+        $paginator
+            ->getQuery()
+            ->setFirstResult($pageSize * (($page>0?$page:1)-1))
+            ->setMaxResults($pageSize);
+
+        $items = [];
+        foreach ($paginator as $pageItem) {
+            /* @var $item News */
+            $items[] = $pageItem;
+        }
+
+        return $items;
     }
 
 //    /**

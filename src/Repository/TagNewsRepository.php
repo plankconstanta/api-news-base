@@ -39,6 +39,26 @@ class TagNewsRepository extends ServiceEntityRepository
         }
     }
 
+    public function generateHash(string $data) {
+        return crc32($data);
+    }
+
+    public function findByName(string $name): ?TagNews
+    {
+        $items = $this->createQueryBuilder('t')
+            ->andWhere('t.hash = :val')
+            ->setParameter('val', $this->generateHash($name))
+            ->getQuery()
+            ->getResult();
+
+        foreach ($items as $item) {
+            /** @var $item TagNews */
+            if ($item->getName() === $name) {
+                return $item;
+            }
+        }
+    }
+
 //    /**
 //     * @return TagNews[] Returns an array of TagNews objects
 //     */
