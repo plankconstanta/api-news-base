@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Controller;
+
 use App\Repository\NewsRepository;
 use App\Repository\TagNewsRepository;
 use App\Service\INewsApiFormatService;

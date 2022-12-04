@@ -58,7 +58,7 @@ class NewsRepository extends ServiceEntityRepository
                 ->setParameter('val2', $dateFrom);
         }
 
-        if (is_array($tagIds)) {
+        if (is_array($tagIds) && !empty($tagIds)) {
             $queryBuilder->leftJoin('n.tags', 't')
             ->andWhere($queryBuilder->expr()->in('t.id', $tagIds));
         }
