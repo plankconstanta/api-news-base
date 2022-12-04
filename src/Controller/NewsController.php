@@ -2,6 +2,7 @@
 namespace App\Controller;
 use App\Repository\NewsRepository;
 use App\Repository\TagNewsRepository;
+use App\Service\INewsApiFormatService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,13 +13,46 @@ class NewsController extends AbstractController
 {
     const COUNT_NEWS_PER_PAGE = 5;
 
-    private $newsRepository;
-    private $tagNewsRepository;
+    private NewsRepository $newsRepository;
+    private TagNewsRepository $tagNewsRepository;
+    private INewsApiFormatService $newsApiStructService;
 
-    public function __construct(NewsRepository $newsRepository, TagNewsRepository $tagNewsRepository)
+    public function __construct(
+        NewsRepository $newsRepository,
+        TagNewsRepository $tagNewsRepository,
+        INewsApiFormatService $newsApiFormatService)
     {
         $this->newsRepository = $newsRepository;
         $this->tagNewsRepository = $tagNewsRepository;
+        $this->newsApiFormatService = $newsApiFormatService;
+    }
+
+    /**
+     * @Route("/api/news", name="api_news")
+     */
+    public function index(Request $request)
+    {
+        $page  = (int)($request->get('page') ? $request->get('page') : 1);
+        $page  = $page > 0 ? $page : 1;
+        $tagIds = $this->getTagIdsFromRequest($request);
+        $dateFrom = $this->getDateFromRequest($request);
+
+        $paginator = $this->newsRepository->findPaginatedByParams(self::COUNT_NEWS_PER_PAGE, $page, $dateFrom, $tagIds);
+
+        $items = [];
+        foreach ($paginator as $news) {
+            /* @var News $news */
+            $items[] = $this->newsApiFormatService->objectToArray($news);
+        }
+
+        $data = [
+            'items' =>  [$items],
+            'page'  =>  $page,
+            'limit' =>  self::COUNT_NEWS_PER_PAGE,
+            'total' =>  count($paginator)
+        ];
+
+        return new JsonResponse($data, Response::HTTP_OK);
     }
 
     private function getTagIdsFromRequest(Request $request): array
@@ -51,28 +85,6 @@ class NewsController extends AbstractController
 
         }
         return $dateFrom;
-    }
-
-    /**
-     * @Route("/api/news", name="api_news")
-     */
-    public function index(Request $request)
-    {
-        $page  = (int)($request->get('page') ? $request->get('page') : 1);
-        $page  = $page > 0 ? $page : 1;
-        $tagIds = $this->getTagIdsFromRequest($request);
-        $dateFrom = $this->getDateFromRequest($request);
-
-        $news = $this->newsRepository->findByParams(self::COUNT_NEWS_PER_PAGE, $page, $dateFrom, $tagIds);
-
-        $data = [
-            'items' =>  [$news],
-            'page'  =>  $page,
-            'limit' =>  self::COUNT_NEWS_PER_PAGE,
-            'total' =>  count($news)
-        ];
-
-        return new JsonResponse($data, Response::HTTP_OK);
     }
 
     /**

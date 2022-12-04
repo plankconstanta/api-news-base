@@ -44,7 +44,7 @@ class NewsRepository extends ServiceEntityRepository
     /**
     * @return News[] Returns an array of News objects
     */
-    public function findByParams(int $pageSize, int $page, DateTimeImmutable $dateFrom = null, array $tagIds = []): array
+    public function findPaginatedByParams(int $pageSize, int $page, DateTimeImmutable $dateFrom = null, array $tagIds = []): Paginator
     {
         $dateNow = new DateTimeImmutable('now');
 
@@ -64,20 +64,13 @@ class NewsRepository extends ServiceEntityRepository
         }
 
         $paginator = new Paginator($queryBuilder->getQuery());
-        //$total = count($paginator);
 
         $paginator
             ->getQuery()
             ->setFirstResult($pageSize * (($page>0?$page:1)-1))
             ->setMaxResults($pageSize);
 
-        $items = [];
-        foreach ($paginator as $pageItem) {
-            /* @var $item News */
-            $items[] = $pageItem;
-        }
-
-        return $items;
+        return $paginator;
     }
 
 //    /**
