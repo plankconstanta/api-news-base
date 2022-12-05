@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\NewsRepository;
 use App\Repository\TagNewsRepository;
 use App\Service\INewsApiFormatService;
+use App\Service\NewsApiException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,15 +37,26 @@ class NewsController extends AbstractController
     {
         $page  = (int)($request->get('page') ? $request->get('page') : 1);
         $page  = $page > 0 ? $page : 1;
-        $tagIds = $this->getTagIdsFromRequest($request);
-        $dateFrom = $this->getDateFromRequest($request);
 
-        $paginator = $this->newsRepository->findPaginatedByParams(self::COUNT_NEWS_PER_PAGE, $page, $dateFrom, $tagIds);
+        try {
+            $tagIds = $this->getTagIdsFromRequest($request);
+            $dateFrom = $this->getDateFromRequest($request);
+        } catch (NewsApiException $e) {
+            return new JsonResponse($e->getMessage(), Response::HTTP_BAD_REQUEST);
+        } catch (\Exception $e) {
+            return new JsonResponse('Internal server error', Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
 
-        $items = [];
-        foreach ($paginator as $news) {
-            /* @var News $news */
-            $items[] = $this->newsApiFormatService->objectToArray($news);
+        try {
+            $paginator = $this->newsRepository->findPaginatedByParams(self::COUNT_NEWS_PER_PAGE, $page, $dateFrom, $tagIds);
+
+            $items = [];
+            foreach ($paginator as $news) {
+                /* @var News $news */
+                $items[] = $this->newsApiFormatService->objectToArray($news);
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse('Internal server error', Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
         $data = [
@@ -82,7 +94,7 @@ class NewsController extends AbstractController
             try {
                 $dateFrom = new \DateTimeImmutable($year . '-' . $month . '-' . '01');
             } catch (\Exception $e) {
-                return null;
+                throw new NewsApiException('Illegal date');
             }
 
         }

@@ -57,6 +57,8 @@ class TagNewsRepository extends ServiceEntityRepository
                 return $item;
             }
         }
+
+        return null;
     }
 
 //    /**
