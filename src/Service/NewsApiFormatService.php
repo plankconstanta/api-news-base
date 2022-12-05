@@ -4,7 +4,7 @@ namespace App\Service;
 use App\Entity\News;
 use App\Entity\TagNews;
 
-class NewsApiFormatService implements INewsApiFormatService
+class NewsApiFormatService implements NewsApiFormatServiceInterface
 {
     public function __construct()
     {}
