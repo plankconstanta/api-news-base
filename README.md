@@ -29,18 +29,15 @@
 
 
 ## Локальный деплой
-1. создать папку проекта и залить репозиторий для докера  
+1. создаем папку проекта и заливаем репозиторий для докера  
 `git clone https://github.com/plankconstanta/symfony_docker .` 
 2. создаем контейнеры для проекта  
 `docker-compose -f docker-compose.yml up --build -d`
-3. перейти в папку app, залить репозиторий проекта symfony   
+3. переходим в папку app, заливаем репозиторий проекта symfony   
 `git clone https://github.com/plankconstanta/api-news .`
 4. заходим в контейнер, где находится symfony
      - `docker exec -it php bash` 
-     - `cp .env.lock .env`
-     - `composer install`
-     - `bin/console doctrine:migrations:migrate`
-     - `bin/console cache:clear`
+     - `./local-deploy.sh`
 ## Итог 
 1. api
     - http://localhost:8080/api/news
